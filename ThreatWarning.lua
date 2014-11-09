@@ -37,6 +37,7 @@ ThreatWarning.tOptionsDefault = {
 	nWarningThreshold = 90,
 	bHideWhenTanking = true,
 	bShowHUD = false,
+	bUseMiniMeter = false,
 	tAnchors = {
 		0,
 		0,
@@ -323,7 +324,7 @@ end
 -- Should we show the warning, and if so, what should it look like
 -- Added ThreatHUD push to save on extra evaluations
 function ThreatWarning:WarnCheck(myThreat, topThreat)
-	if #self.tThreatList > 0 then -- Base Check to only change things when there is more than 1 person in the group
+	if #self.tThreatList > 1 then -- Base Check to only change things when there is more than 1 person in the group
 	local nPercent = 0
 	
 		-- Set the %threat of the player in relation to the first person on the threatlist.
