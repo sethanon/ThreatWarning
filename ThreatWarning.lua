@@ -65,7 +65,7 @@ ThreatWarning.tOptionsDefault = {
 	tColors = {
       sSelf = "ff8b0000",
       sOthers = "ff20b2aa",
-      sPet = "xkcdDustyGreen"
+      sPet = "ff2e8b57"
 		}
 	}
 
@@ -197,8 +197,8 @@ function ThreatWarning:OnDocLoaded()
 		self.wndMain:SetAnchorOffsets(unpack(self.tOptions.tOffsets))
 		self.wndThreatHUD:SetAnchorOffsets(unpack(self.tOptions.tOffsetsHUD))
 		self.wndThreatHUD:Show(self.tOptions.bShowHUD)
-		self.wndThreatHUD:FindChild("Percent"):SetText("N/A%")
-		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: N/A")
+		self.wndThreatHUD:FindChild("Percent"):SetText("")
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("")
 
 	end
 end
@@ -305,6 +305,7 @@ end
 function ThreatWarning:OnTargetUnitChanged(unitTarget)
 	self.wndMain:FindChild("ThreatList"):DestroyChildren()
 	self.wndWarn:Show(false)
+	self.wndThreatHUD:FindChild("MiniBarList"):DestroyChildren()
 end
 
 -----------------------------------------------------------------------------------------------
@@ -316,57 +317,37 @@ function ThreatWarning:ShowWarn(bShow)
 		self.wndWarn:Show(false)
 	else
 		self.wndWarn:Show(bShow)
+		self.wndThreatHUD:FindChild("Flash"):Show(true)
 		if bShow then Sound.Play(221) end  -- Sound for Warning
 	end
 end
 
 
 -- Should we show the warning, and if so, what should it look like
--- Added ThreatHUD push to save on extra evaluations
+-- Added ThreatHUD push to this path
 function ThreatWarning:WarnCheck(myThreat, topThreat)
-	if #self.tThreatList > 1 then -- Base Check to only change things when there is more than 1 person in the group
 	local nPercent = 0
-	
-		-- Set the %threat of the player in relation to the first person on the threatlist.
-		if myThreat / topThreat == 1 and #self.tThreatList > 1 then
-			nPercent = (self.tThreatList[2].nValue / myThreat) * 100 
-		else
-			nPercent = (myThreat / topThreat) * 100
-		end
+	-- Set the %threat of the player in relation to the first person on the threatlist.
+	if myThreat / topThreat == 1 and #self.tThreatList > 1 then
+		nPercent = (self.tThreatList[2].nValue / myThreat) * 100 
+	else
+		nPercent = (myThreat / topThreat) * 100
+	end
 	
 	self:UpdateHUD(nPercent)
 	
+	if #self.tThreatList > 1 then -- Base Check to only change things when there is more than 1 person in the group
+
 		-- Set Warning Text Color
-		if nPercent < 0.9 then
-			self.wndWarn:SetText("***High Threat***")
+		if nPercent < 90 then
+			self.wndWarn:FindChild("Text"):SetText("***High Threat***")
 			self.wndWarn:SetTextColor(ApolloColor.new("yellow"))
-			self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("yellow"))
-			self.wndThreatHUD:FindChild("Flash"):Show(false)
-			self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sOthers))
-			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
-		elseif nPercent == 1 then
+		elseif nPercent == 100 then
 			self.wndWarn:SetTextColor(ApolloColor.new("ff8b0000"))
-			self.wndWarn:SetText("***TOP THREAT***")
-			self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("ff8b0000"))
-			self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sSelf))
-			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
-			if #self.tThreatList > 1 then
-				self.wndThreatHUD:FindChild("Flash"):Show(true)
-			end
-		elseif nPercent >= 0.9 then
-			self.wndWarn:SetText("***High Threat***")
+			self.wndWarn:FindChild("Text"):SetText("***TOP THREAT***")
+		elseif nPercent >= 90 then
+			self.wndWarn:FindChild("Text"):SetText("***High Threat***")
 			self.wndWarn:SetTextColor(ApolloColor.new("red"))
-			self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
-			self.wndThreatHUD:FindChild("Flash"):Show(false)
-		end
-	
-		-- Show or hide the ThreatHUD
-		if nPercent >= self.tOptions.nWarningThreshold / 100 and self.tOptions.bShowHUD then
-			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
-			-- self:ShowHUD(true)
-			-- Is there something interesting to report in the "Message" window on the ThreatHUD		
-		else
-			--self:ShowHUD(false)
 		end
 	
 		-- Should we show the warning?
@@ -392,8 +373,9 @@ function ThreatWarning:OnCombatTimer()
 		self.wndThreatHUD:FindChild("MiniBarList"):DestroyChildren()
 		self.nCombatDuration = 0
 		self.wndWarn:Show(false)
-		self.wndThreatHUD:FindChild("Percent"):SetText("N/A%")
-		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: N/A")
+		self.wndThreatHUD:FindChild("Flash"):Show(false)
+		self.wndThreatHUD:FindChild("Percent"):SetText("")
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("")
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("white"))
 		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new("white"))
 		self.wndThreatHUD:FindChild("Message"):SetText("")
@@ -520,21 +502,28 @@ function ThreatWarning:UpdateHUD(nPercent)
 	end
 	
 	-- Set other HUD text and colors
-	if nPercent < 0.9 then
+	if nPercent < 90 then
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("yellow"))
 		self.wndThreatHUD:FindChild("Flash"):Show(false)
 		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sOthers))
 		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
-	elseif nPercent == 1 then
-		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("ff8b0000"))
+	elseif nPercent == 100 then
+		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
 		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sSelf))
-		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
 		if #self.tThreatList > 1 then
-			self.wndThreatHUD:FindChild("Flash"):Show(true)
+			if self.tOptions.bHideWhenTanking and InTankStance() then
+				self.wndThreatHUD:FindChild("Flash"):Show(false)
+			else
+				self.wndThreatHUD:FindChild("Flash"):Show(true)
+			end
+			self.wndThreatHUD:FindChild("TopThreat"):SetText("Second: "..GameLib.GetUnitById(self.tThreatList[2].nId):GetName())
+			self.wndThreatHUD:FindChild("Message"):SetText("TOP THREAT!!!")
+		else
+			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
 		end
 		--self.wndThreatHUD:FindChild("Message"):SetTextColor(ApolloColor.new("ff8b0000"))
-		self.wndThreatHUD:FindChild("Message"):SetText("TOP THREAT!!!")
-	elseif nPercent >= 0.9 then
+
+	elseif nPercent >= 90 then
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
 		self.wndThreatHUD:FindChild("Flash"):Show(false)
 	end
@@ -616,8 +605,11 @@ function ThreatWarning:OnEnableHUDBtn( wndHandler, wndControl, eMouseButton )
 end
 
 function ThreatWarning:OnShowMoveHUDBtn( wndHandler, wndControl, eMouseButton )
-	self.nLastCombatAction = os.time()
-	self.wndThreatHUD:Show(true)
+	self.nLastCombatAction = os.time() + 8
+	self.wndThreatHUD:FindChild("Percent"):SetText("50%")
+	self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetPlayerUnit():GetName())
+	self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("yellow"))
+	self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sOthers))
 end
 
 -- Show Color selector
@@ -627,10 +619,10 @@ function ThreatWarning:OnColorClick( wndHandler, wndControl, eMouseButton, nLast
 	local tColor = ""
 	if strFocus == "Self" then
 		tColor = self.tOptions.tColors.sSelf
-		Print(self.tOptions.tColors.sSelf)
-		Print(tColor)
 	elseif strFocus == "Others" then
 		tColor = self.tOptions.tColors.sOthers
+	elseif strFocus == "Pet" then
+		tColor = self.tOptions.tColors.sPet
 	end
 	GeminiColor:ShowColorPicker(self, "OnGeminiColor", true, tColor, strFocus)
 end
@@ -639,11 +631,12 @@ end
 function ThreatWarning:OnGeminiColor(strColor, strFocus)
 Print(strColor)
 Print(strFocus..": "..strColor)
-	--self.wndOptions:FindChild(strGroup):FindChild("ThreatMeterOptions"):FindChild(strFocus):FindChild("SelfBGColor"):SetBGColor(strColor)
 	if strFocus == "Self" then
 		self.tOptions.tColors.sSelf = strColor
 	elseif strFocus == "Others" then
 		self.tOptions.tColors.sOthers = strColor
+	elseif strFocus == "Pet" then
+		self.tOptions.tColors.sPet = strColor
 	end
 	self.wndOptions:Show(false)
 	self:OnOptionsOn()
@@ -724,7 +717,7 @@ function ThreatWarning:OnShowTestBarsBtn( wndHandler, wndControl, eMouseButton )
   	end
 
 	self.wndThreatList:ArrangeChildrenVert()
-	self.wndMiniThreatList:ArrangeChildrenVert()	
+	self.wndMiniThreatList:ArrangeChildrenVert()
 end
 
 -----------------------------------------------------------------------------------------------
