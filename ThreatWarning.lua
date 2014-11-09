@@ -30,7 +30,7 @@ local function InTankStance()
 end
 
 ThreatWarning.tOptionsDefault = {
-	nOptionsVersion = 3,
+	nOptionsVersion = 1,
 	bShow = true,
 	bShowWarning = true,
 	bLock = false,
@@ -49,18 +49,32 @@ ThreatWarning.tOptionsDefault = {
 		350,
 		250
 		},
+	tAnchorsHUD = {
+		0.5,
+		0.5,
+		0.5,
+		0.5
+		},
+	tOffsetsHUD = {
+		-75,
+		-250,
+		75,
+		-180
+		},
 	tColors = {
-      tSelf = { nR = 87, nG = 156, nB = 12, nA = 255 },
-      tOthers = { nR = 13, nG = 143, nB = 211, nA = 255 },
-      tPet = { nR = 47, nG = 79, nB = 79, nA = 255 },
-      [GameLib.CodeEnumClass.Warrior] = { nR = 235, nG = 27, nB = 27, nA = 255 },
-      [GameLib.CodeEnumClass.Engineer] = { nR = 225, nG = 140, nB = 32, nA = 255 },
-      [GameLib.CodeEnumClass.Esper] = { nR = 13, nG = 143, nB = 211, nA = 255 },
-      [GameLib.CodeEnumClass.Medic] = { nR = 233, nG = 192, nB = 36, nA = 255 },
-      [GameLib.CodeEnumClass.Spellslinger] = { nR = 87, nG = 156, nB = 12, nA = 255 },
-      [GameLib.CodeEnumClass.Stalker] = { nR = 154, nG = 25, nB = 230, nA = 255 }
+      sSelf = "ff8b0000",
+      sOthers = "ff20b2aa",
+      sPet = "xkcdDustyGreen"
 		}
 	}
+
+	
+      --[GameLib.CodeEnumClass.Warrior] = { nR = 235, nG = 27, nB = 27, nA = 255 },
+      --[GameLib.CodeEnumClass.Engineer] = { nR = 225, nG = 140, nB = 32, nA = 255 },
+      --[GameLib.CodeEnumClass.Esper] = { nR = 13, nG = 143, nB = 211, nA = 255 },
+      --[GameLib.CodeEnumClass.Medic] = { nR = 233, nG = 192, nB = 36, nA = 255 },
+      --[GameLib.CodeEnumClass.Spellslinger] = { nR = 87, nG = 156, nB = 12, nA = 255 },
+      --[GameLib.CodeEnumClass.Stalker] = { nR = 154, nG = 25, nB = 230, nA = 255 }
 
 
 --ThreatWarning.tOptions = {}
@@ -148,7 +162,7 @@ function ThreatWarning:OnDocLoaded()
 		Apollo.RegisterEventHandler("TargetThreatListUpdated","OnTargetThreatListUpdated",self)
 		Apollo.RegisterEventHandler("TargetUnitChanged", "OnTargetUnitChanged", self)
 		
-		--R egister a series of variables
+		-- Register a series of variables
 		self.pTotal = 0
 		self.pId = 0 -- GameLib.GetPlayerUnit():GetId()
 		self.nValue = 0
@@ -168,16 +182,23 @@ function ThreatWarning:OnDocLoaded()
 			self:ShowHideMeter(self.tOptions.bShow)
 			self.wndMain:SetAnchorOffsets(unpack(self.tOptions.tOffsets))
 			self.wndMain:SetAnchorPoints(unpack(self.tOptions.tAnchors))
+			self.wndThreatHUD:SetAnchorOffsets(unpack(self.tOptions.tOffsetsHUD))
+			self.wndThreatHUD:Show(self.tOptions.bShowHUD)
 		else
 			self.tOptions = self.tOptionsDefault
 			self:ShowHideMeter(self.tOptions.bShow)
-			self.wndMain:SetAnchorOffsets(unpack(self.tOptions.tOffsets))
-			self.wndMain:SetAnchorPoints(unpack(self.tOptions.tAnchors))
 		end	
 		self.wndMain:SetStyle("Moveable", not self.tOptions.bLock)
 		self.wndMain:SetStyle("Sizable", not self.tOptions.bLock)
 		self.wndMain:SetStyle("IgnoreMouse", self.tOptions.bLock)
 		self.wndMain:FindChild("Background"):Show(not self.tOptions.bLock,true)
+		self.wndThreatHUD:FindChild("Flash"):Show(false,true)
+		self.wndMain:SetAnchorOffsets(unpack(self.tOptions.tOffsets))
+		self.wndThreatHUD:SetAnchorOffsets(unpack(self.tOptions.tOffsetsHUD))
+		self.wndThreatHUD:Show(self.tOptions.bShowHUD)
+		self.wndThreatHUD:FindChild("Percent"):SetText("N/A%")
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: N/A")
+
 	end
 end
 
@@ -190,11 +211,11 @@ end
 function ThreatWarning:ShowHideMeter(bShow)
 	-- Start timers if we're opening the window, and stop them if it's being closed
 	if bShow then
-		self.tCombatTimer:Start()
-		self.tUpdateTimer:Start()
+		--self.tCombatTimer:Start()
+		--self.tUpdateTimer:Start()
 	else
-		self.tCombatTimer:Stop()
-		self.tUpdateTimer:Stop()
+		--self.tCombatTimer:Stop()
+		--self.tUpdateTimer:Stop()
 	end
 	self.wndMain:Show(bShow)
 end
@@ -217,6 +238,9 @@ function ThreatWarning:OnSave(eLevel)
 	
 	self.tOptions.tAnchors = {self.wndMain:GetAnchorPoints()}
 	self.tOptions.tOffsets = {self.wndMain:GetAnchorOffsets()}
+	
+	self.tOptions.tAnchorsHUD = {self.wndThreatHUD:GetAnchorPoints()}
+	self.tOptions.tOffsetsHUD = {self.wndThreatHUD:GetAnchorOffsets()}
 	
 	local tData = self.tOptions
 	
@@ -268,9 +292,10 @@ function ThreatWarning:OnTargetThreatListUpdated(...)
 			return oValue1.nValue > oValue2.nValue
 		end
 		)
+	
 
-	--Find the lists Top Threat value and send it as well as the player's threat value to the Warning evaluation function
-	if self.nPtotal > 0 then			--CHANGE THIS FOR LIVERSION
+	-- Fires the Warning Check if there is anyone on the threat list
+	if #self.tThreatList > 0 then			
 		self:WarnCheck(self.nPtotal, self.tThreatList[1]["nValue"])
 	end
 	self.nLastCombatEvent = os.time()
@@ -296,37 +321,51 @@ end
 
 
 -- Should we show the warning, and if so, what should it look like
--- Added ThreatHUD Calcs and Changes to this check
+-- Added ThreatHUD push to save on extra evaluations
 function ThreatWarning:WarnCheck(myThreat, topThreat)
-	if #self.tThreatList > 0 then	
+	if #self.tThreatList > 0 then -- Base Check to only change things when there is more than 1 person in the group
 	local nPercent = 0
 	
-	if myThreat / topThreat == 1 and #self.tThreatList > 1 then
-		nPercent = ((self.tThreatList[2].nValue - myThreat) / myThreat) * 100 
-	else
-		nPercent = (myThreat / topThreat) * 100
-	end
-	self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%d%s", nPercent, "%"))
-
+		-- Set the %threat of the player in relation to the first person on the threatlist.
+		if myThreat / topThreat == 1 and #self.tThreatList > 1 then
+			nPercent = (self.tThreatList[2].nValue / myThreat) * 100 
+		else
+			nPercent = (myThreat / topThreat) * 100
+		end
+	
+	self:UpdateHUD(nPercent)
+	
 		-- Set Warning Text Color
 		if nPercent < 0.9 then
+			self.wndWarn:SetText("***High Threat***")
 			self.wndWarn:SetTextColor(ApolloColor.new("yellow"))
 			self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("yellow"))
+			self.wndThreatHUD:FindChild("Flash"):Show(false)
+			self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sOthers))
+			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
 		elseif nPercent == 1 then
-			self.wndWarn:SetTextColor(ApolloColor.new("magenta"))
-					elseif nPercent >= 0.9 then
+			self.wndWarn:SetTextColor(ApolloColor.new("ff8b0000"))
+			self.wndWarn:SetText("***TOP THREAT***")
+			self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("ff8b0000"))
+			self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sSelf))
+			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
+			if #self.tThreatList > 1 then
+				self.wndThreatHUD:FindChild("Flash"):Show(true)
+			end
+		elseif nPercent >= 0.9 then
+			self.wndWarn:SetText("***High Threat***")
 			self.wndWarn:SetTextColor(ApolloColor.new("red"))
+			self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
+			self.wndThreatHUD:FindChild("Flash"):Show(false)
 		end
 	
 		-- Show or hide the ThreatHUD
 		if nPercent >= self.tOptions.nWarningThreshold / 100 and self.tOptions.bShowHUD then
 			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
-			self:ShowHUD(true)
-			-- Is there something interesting to report in the "Message" window on the ThreatHUD
-			
-			
+			-- self:ShowHUD(true)
+			-- Is there something interesting to report in the "Message" window on the ThreatHUD		
 		else
-			self:ShowHUD(false)
+			--self:ShowHUD(false)
 		end
 	
 		-- Should we show the warning?
@@ -337,7 +376,6 @@ function ThreatWarning:WarnCheck(myThreat, topThreat)
 		else
 			if self.wndWarn ~= nil and self.wndWarn:IsShown() then
 				self.ShowWarn(false)
-				self.ShowHUD(false)
 			end 
 		end
 	end
@@ -353,7 +391,11 @@ function ThreatWarning:OnCombatTimer()
 		self.wndThreatHUD:FindChild("MiniBarList"):DestroyChildren()
 		self.nCombatDuration = 0
 		self.wndWarn:Show(false)
-		self.wndThreatHUD:Show(false)
+		self.wndThreatHUD:FindChild("Percent"):SetText("N/A%")
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: N/A")
+		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("white"))
+		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new("white"))
+		self.wndThreatHUD:FindChild("Message"):SetText("")
 	else self.nCombatDuration = self.nCombatDuration + 1
 	end
 end
@@ -381,7 +423,7 @@ function ThreatWarning:OnUpdateTimer()
     		self:CreateThreatBar(self.wndThreatList, tEntry)
   		end
 
-		self.wndThreatList:ArrangeChildrenVert()--(0, ThreatWarning.SortBars)
+		self.wndThreatList:ArrangeChildrenVert()
 		self.wndMiniThreatList:ArrangeChildrenVert()
 	end	
 
@@ -422,44 +464,37 @@ function ThreatWarning:CreateThreatBar(wndParent, tEntry)
 	
 	
 	-- Set the background color for the ThreatBar
-	local nR, nG, nB, nA = self:GetColorForThreatBar(tEntry)
+	local sColor = self:GetColorForThreatBar(tEntry)
 	local nLeft, nTop, _, nBottom = wnd:FindChild("Background"):GetAnchorPoints()
 	wnd:FindChild("Background"):SetAnchorPoints(nLeft, nTop, nPercent / 100, nBottom)
-	wnd:FindChild("Background"):SetBGColor(ApolloColor.new(nR, nG, nB, nA))
+	wnd:FindChild("Background"):SetBGColor(ApolloColor.new(sColor))
 	
 	-- Set the length and background for the MiniThreatBar
 	local nLeftMini, nTopMini, _, nBottomMini = wndMini:FindChild("Background"):GetAnchorPoints()
 	wndMini:FindChild("Background"):SetAnchorPoints(nLeftMini, nTopMini, nPercent / 100, nBottomMini)
-	wndMini:FindChild("Background"):SetBGColor(ApolloColor.new(nR, nG, nB, nA))
+	wndMini:FindChild("Background"):SetBGColor(ApolloColor.new(sColor))
 	
 
 end
 
-function ThreatWarning.SortBars(wnd1, wnd2)
-	local nValue1 = wnd1:FindChild("Threat"):GetData()
-	local nValue2 = wnd2:FindChild("Threat"):GetData()
-	return nValue1 >= nValue2
-end
-
 function ThreatWarning:GetColorForThreatBar(tEntry)
-	local tColor = nil
-	local tDefault = { nR = 255, nG = 255, nB = 255, nA = 255 }  -- White
+	local sColor = nil
+	local sDefault = "blue"
 
-	local oPlayer = GameLib.GetPlayerUnit()
-	if oPlayer ~= nil and oPlayer:GetId() == tEntry.nId then
-		tColor = self.tOptions.tColors.tSelf or tDefault
+	local unitPlayer = GameLib.GetPlayerUnit()
+	if unitPlayer ~= nil and unitPlayer:GetId() == tEntry.nId then
+		sColor = self.tOptions.tColors.sSelf or sDefault
 	else
-		tColor = self.tOptions.tColors.tOthers or tDefault
+		sColor = self.tOptions.tColors.sOthers or sDefault
 	end
 
-	--Use Class Colors
-	--tColor = self.tOptions.tColors[tEntry.eClass] or tDefault
+	-- Use Class Colors as a future option?
   
 	if tEntry.bPet then
-		tColor = self.tOptions.tColors.tPet or tDefault
+		sColor = self.tOptions.tColors.sPet or sDefault
 	end
 
-	return (tColor.nR / 255), (tColor.nG / 255), (tColor.nB  / 255), (tColor.nA / 255)
+	return sColor
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -471,6 +506,42 @@ function ThreatWarning:ShowHUD(bShow)
 		self.wndThreatHUD:Show(bShow)
 	else
 		self.wndThreatHUD:Show(bShow)
+	end
+end
+
+function ThreatWarning:UpdateHUD(nPercent)
+	self.wndThreatHUD:FindChild("Message"):SetText("")
+	-- Set the ThreatHUD Percent Display
+	if nPercent > 0 then
+		self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%d%s", nPercent, "%"))
+	else 
+		self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%s%s", "Low", "%"))
+	end
+	
+	-- Set other HUD text and colors
+	if nPercent < 0.9 then
+		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("yellow"))
+		self.wndThreatHUD:FindChild("Flash"):Show(false)
+		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sOthers))
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
+	elseif nPercent == 1 then
+		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("ff8b0000"))
+		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sSelf))
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
+		if #self.tThreatList > 1 then
+			self.wndThreatHUD:FindChild("Flash"):Show(true)
+		end
+		--self.wndThreatHUD:FindChild("Message"):SetTextColor(ApolloColor.new("ff8b0000"))
+		self.wndThreatHUD:FindChild("Message"):SetText("TOP THREAT!!!")
+	elseif nPercent >= 0.9 then
+		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
+		self.wndThreatHUD:FindChild("Flash"):Show(false)
+	end
+	
+	-- Message Checks
+	
+	-- Show or hide the ThreatHUD based on a FUTURE HUD toggle setting
+	if nPercent >= self.tOptions.nWarningThreshold / 100 and self.tOptions.bShowHUD then
 	end
 end
 
@@ -500,11 +571,10 @@ function ThreatWarning:OnOptionsOn()
 	self.wndOptions:FindChild("WarningOptions"):FindChild("ShowWarning"):SetCheck(self.tOptions.bShowWarning)
 	self.wndOptions:FindChild("WarningOptions"):FindChild("WarningThresholdSlider"):FindChild("Value"):SetText(string.format("%s %s", self.tOptions.nWarningThreshold, "%"))
 	self.wndOptions:FindChild("ThreatHudOptions"):FindChild("Enable"):SetCheck(self.tOptions.bShowHUD)
-	local tSelf
-	for i = 1, #self.tOptions.tColors.tSelf do
-		tSelf[i] = self.tOptions.tColors.tSelf[i] / 255
-	end
-	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Self"):FindChild("SelfBGColor"):SetBGColor(tSelf)
+	self.wndOptions:FindChild("WarningOptions"):FindChild("Tanking"):SetCheck(self.tOptions.bHideWhenTanking)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Self"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sSelf)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Others"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sOthers)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Pet"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sPet)
 
 	
 	if self.wndOptions:IsShown() then self.wndOptions:Show(false) else self.wndOptions:Show(true) end
@@ -545,6 +615,7 @@ function ThreatWarning:OnEnableHUDBtn( wndHandler, wndControl, eMouseButton )
 end
 
 function ThreatWarning:OnShowMoveHUDBtn( wndHandler, wndControl, eMouseButton )
+	self.nLastCombatAction = os.time()
 	self.wndThreatHUD:Show(true)
 end
 
@@ -552,11 +623,13 @@ end
 function ThreatWarning:OnColorClick( wndHandler, wndControl, eMouseButton, nLastRelativeMouseX, nLastRelativeMouseY, bDoubleClick, bStopPropagation )
 	if wndHandler ~= wndControl or eMouseButton ~= GameLib.CodeEnumInputMouse.Left then return end
 	local strFocus = wndControl:GetParent():GetName()
-	local tColor = {}
+	local tColor = ""
 	if strFocus == "Self" then
-		tColor = self.tOptions.tColors.tSelf
+		tColor = self.tOptions.tColors.sSelf
+		Print(self.tOptions.tColors.sSelf)
+		Print(tColor)
 	elseif strFocus == "Others" then
-		tColor = self.tOptions.tColors.tOthers
+		tColor = self.tOptions.tColors.sOthers
 	end
 	GeminiColor:ShowColorPicker(self, "OnGeminiColor", true, tColor, strFocus)
 end
@@ -567,13 +640,91 @@ Print(strColor)
 Print(strFocus..": "..strColor)
 	--self.wndOptions:FindChild(strGroup):FindChild("ThreatMeterOptions"):FindChild(strFocus):FindChild("SelfBGColor"):SetBGColor(strColor)
 	if strFocus == "Self" then
-		self.tOptions.tColors.tSelf = strColor
+		self.tOptions.tColors.sSelf = strColor
 	elseif strFocus == "Others" then
-		self.tOptions.tColors.tOthers = strColor
+		self.tOptions.tColors.sOthers = strColor
 	end
+	self.wndOptions:Show(false)
+	self:OnOptionsOn()
 end
 
+function ThreatWarning:OnHideWhenTankingBtn( wndHandler, wndControl, eMouseButton )
+	self.tOptions.bHideWhenTanking = wndControl:IsChecked()
+end
 
+function ThreatWarning:OnResetOptionsBtn( wndHandler, wndControl, eMouseButton )
+	-- Hide the UI
+	self.wndOptions:Show(false)
+	self.wndMain:Show(false)
+	self.wndThreatHUD:Show(false)
+	
+	-- Reset Default Settings
+	self.tOptions = self.tOptionsDefault
+	
+	--Reload the UI
+	self.wndMain:SetAnchorOffsets(unpack(self.tOptions.tOffsets))
+	self.wndMain:SetAnchorPoints(unpack(self.tOptions.tAnchors))
+	self.wndThreatHUD:Show(self.tOptions.bShowHUD)
+	self.wndMain:SetStyle("Moveable", not self.tOptions.bLock)
+	self.wndMain:SetStyle("Sizable", not self.tOptions.bLock)
+	self.wndMain:SetStyle("IgnoreMouse", self.tOptions.bLock)
+	self.wndMain:FindChild("Background"):Show(not self.tOptions.bLock,true)
+	self:ShowHideMeter(self.tOptions.bShow)
+	self:OnOptionsOn()
+end
+
+function ThreatWarning:OnShowTestBarsBtn( wndHandler, wndControl, eMouseButton )
+	local tTestBars = {}
+	self.nLastCombatAction = os.time() + 8
+	self.nCombatDuration = 60
+	tTestBars = {
+			{
+			nId = 0,
+			sName = "Main Tank",
+			eClass = GameLib.CodeEnumClass.Stalker,
+			bPet = false,
+			nValue = 500000
+			},
+			{
+			nId = GameLib.GetPlayerUnit():GetId(),
+			sName = GameLib.GetPlayerUnit():GetName(),
+			eClass = GameLib.GetPlayerUnit():GetClassId(),
+			bPet = false,
+			nValue = 475000
+			},
+			{
+			nId = 0,
+			sName = "Engineer DPS",
+			eClass = GameLib.CodeEnumClass.Esper,
+			bPet = false,
+			nValue = 425000
+			},
+			{
+			nId = 0,
+			sName = "Esper DPS",
+			eClass = GameLib.CodeEnumClass.Spellslinger,
+			bPet = false,
+			nValue = 350000
+			},
+			{
+			nId = 0,
+			sName = "Pet of Somebody",
+			eClass = nil,
+			bPet = true,
+			nValue = 300000
+			}
+		}
+
+	self.wndThreatList:DestroyChildren()
+	self.wndMiniThreatList:DestroyChildren()
+	
+  	for _, tEntry in ipairs(tTestBars) do
+    	self:CreateThreatBar(self.wndThreatList, tEntry)
+  	end
+
+	self.wndThreatList:ArrangeChildrenVert()
+	self.wndMiniThreatList:ArrangeChildrenVert()	
+end
 
 -----------------------------------------------------------------------------------------------
 -- ThreatWarning Instance
