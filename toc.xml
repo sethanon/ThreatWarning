@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Addon Author="Sethanon" APIVersion="9" Name="ThreatWarning" Description="A new threatmeter with a configurable threat warning">
+    <Script Name="ThreatWarning.lua"/>
+    <Script Name="Utility.lua"/>
+    <Script Name="GeminiColor/GeminiColor.lua"/>
+    <Form Name="ThreatWarning.xml"/>
+    <Form Name="GeminiColor/GeminiColor.xml"/>
+</Addon>
