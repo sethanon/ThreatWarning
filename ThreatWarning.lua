@@ -420,7 +420,7 @@ end
  
 -- Create the Threat Bars based on the current Threat Table
 function ThreatWarning:CreateThreatBar(wndParent, tEntry)
-	--Do some maths
+	-- Do some maths
 	local nTPS = tEntry.nValue / self.nCombatDuration
 	local nPercent = 0
 	local sValue = self:FormatNumber(tEntry.nValue, 2)
@@ -429,7 +429,6 @@ function ThreatWarning:CreateThreatBar(wndParent, tEntry)
 		local nTop = wndParent:GetChildren()[1]:FindChild("Threat"):GetData()
 		nPercent = (tEntry['nValue'] / nTop) * 100
 	else
- 		-- This is the topmost bar.
     	nPercent = 100
 	end
 
@@ -441,10 +440,10 @@ function ThreatWarning:CreateThreatBar(wndParent, tEntry)
 	wnd:FindChild("Threat"):SetText(string.format("%s  %d%s", sValue, nPercent, "%"))
 	wnd:FindChild("Threat"):SetData(tEntry['nValue'])
 	
+	-- Load the Mini Bar and populate the data
 	local wndMini = Apollo.LoadForm(self.xmlDoc, "MiniBar", self.wndMiniThreatList, self)
 	wndMini:FindChild("Name"):SetText(tEntry['sName'])
 	wndMini:FindChild("Percent"):SetText(string.format("%d%s", nPercent, "%"))
-	
 	
 	-- Set the background color for the ThreatBar
 	local sColor = self:GetColorForThreatBar(tEntry)
@@ -565,6 +564,7 @@ function ThreatWarning:OnOptionsOn()
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Self"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sSelf)
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Others"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sOthers)
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Pet"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sPet)
+	self.wndOptions:FindChild("ThreatHudOptions"):FindChild("ShowMiniMeter"):SetCheck(self.tOptions.bUseMiniMeter)
 
 	
 	if self.wndOptions:IsShown() then self.wndOptions:Show(false) else self.wndOptions:Show(true) end
@@ -718,6 +718,11 @@ function ThreatWarning:OnShowTestBarsBtn( wndHandler, wndControl, eMouseButton )
 
 	self.wndThreatList:ArrangeChildrenVert()
 	self.wndMiniThreatList:ArrangeChildrenVert()
+end
+
+function ThreatWarning:OnMiniMeterShowBtn( wndHandler, wndControl, eMouseButton )
+	self.tOptions.bUseMiniMeter = wndControl:IsChecked()
+	self.wndMiniThreatList:Show(self.tOptions.bUseMiniMeter)
 end
 
 -----------------------------------------------------------------------------------------------
