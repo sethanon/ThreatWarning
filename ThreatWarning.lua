@@ -63,6 +63,18 @@ ThreatWarning.tOptionsDefault = {
 		75,
 		-180
 		},
+	tAnchorsMini = {
+		100,
+		100,
+		250,
+		181
+		},
+	tOffsetsMini = {
+		0,
+		0,
+		0,
+		0
+		},
 	tColors = {
       sSelf = "ff8b0000",
       sOthers = "ff20b2aa",
@@ -197,6 +209,8 @@ function ThreatWarning:OnDocLoaded()
 			self.wndMain:SetAnchorPoints(unpack(self.tOptions.tAnchors))
 			self.wndThreatHUD:SetAnchorOffsets(unpack(self.tOptions.tOffsetsHUD))
 			self.wndThreatHUD:Show(self.tOptions.bShowHUD)
+			self.wndMiniMeter:SetAnchorOffsets(unpack(self.tOptions.tOffsetsMini))
+			self.wndMiniMeter:SetAnchorPoints(unpack(self.tOptions.tAnchorsMini))
 		else
 			self.tOptions = self.tOptionsDefault
 			self:ShowHideMeter(self.tOptions.bShow)
@@ -254,6 +268,9 @@ function ThreatWarning:OnSave(eLevel)
 	
 	self.tOptions.tAnchorsHUD = {self.wndThreatHUD:GetAnchorPoints()}
 	self.tOptions.tOffsetsHUD = {self.wndThreatHUD:GetAnchorOffsets()}
+	
+	self.tOptions.tAnchorsMini = {self.wndMiniMeter:GetAnchorPoints()}
+	self.tOptions.tOffsetsMini = {self.wndMiniMeter:GetAnchorOffsets()}
 	
 	local tData = self.tOptions
 	
@@ -369,7 +386,7 @@ function ThreatWarning:WarnCheck(myThreat, topThreat)
 			end
 		else
 			if self.wndWarn ~= nil and self.wndWarn:IsShown() then
-				self.ShowWarn(false)
+				self:ShowWarn(false)
 			end 
 		end
 	end
