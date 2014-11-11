@@ -38,6 +38,7 @@ ThreatWarning.tOptionsDefault = {
 	bHideWhenTanking = true,
 	bShowHUD = false,
 	bUseMiniMeter = false,
+	sBarTexture = "ClientSprites:HoverHealthFull",
 	tAnchors = {
 		0,
 		0,
@@ -70,15 +71,26 @@ ThreatWarning.tOptionsDefault = {
 	}
 
 	
-      --[GameLib.CodeEnumClass.Warrior] = { nR = 235, nG = 27, nB = 27, nA = 255 },
-      --[GameLib.CodeEnumClass.Engineer] = { nR = 225, nG = 140, nB = 32, nA = 255 },
-      --[GameLib.CodeEnumClass.Esper] = { nR = 13, nG = 143, nB = 211, nA = 255 },
-      --[GameLib.CodeEnumClass.Medic] = { nR = 233, nG = 192, nB = 36, nA = 255 },
-      --[GameLib.CodeEnumClass.Spellslinger] = { nR = 87, nG = 156, nB = 12, nA = 255 },
-      --[GameLib.CodeEnumClass.Stalker] = { nR = 154, nG = 25, nB = 230, nA = 255 }
-
-
---ThreatWarning.tOptions = {}
+ThreatWarning.tTextures = {
+	"BasicSprites:WhiteFill",
+	"BasicSprites:LineFill",
+	"ClientSprites:HoverHealthFull",
+	"CRB_NameplateSprites:sprNp_WhiteBarFill",
+	"TargetFrameSprites:TargetCastBarFill",
+	"CRB_ActionBarIconSprites:sprAS_ButtonPress",
+	"CRB_MinimapSprites:WhiteNoise"
+	--"CRB_ActionBarFrameSprites:sprResourceBar_AbsorbProgBar",
+	--"CRB_ActionBarFrameSprites:sprResourceBar_AbsorbProgBarWithEdge",
+	--"CRB_Basekit:kitIProgBar_Breath_Fill",
+	--"CRB_InterfaceMenuList:spr_BaseBar_TEMP_HalfPurpleXP",
+	--"CRB_NameplateSprites:sprNp_HealthBarGrey",
+	--"CRB_Raid:sprRaid_AbsorbProgBar",
+	--"CRB_Raid:sprRaid_HealthProgBar_Orange",
+	--"CRB_Raid:sprRaidTear_BigHealthProgBar_Orange",
+	--"HologramSprites:HoloProgressBar",
+	--"HUD_BottomBar:spr_HUD_VerticalGoo",
+	--"HUD_TargetFrameFlipped:spr_TargetFrame_HealthFillYellowFlipped"
+	}
 
 local Utility
 
@@ -133,8 +145,10 @@ function ThreatWarning:OnDocLoaded()
 		self.wndThreatList = self.wndMain:FindChild("ThreatList")
 		self.wndOptions:Show(false, true)
 		self.wndThreatHUD = Apollo.LoadForm(self.xmlDoc, "ThreatHUD", nil, self)
-		self.wndThreatHUD:Show(false,true)
-		self.wndMiniThreatList = self.wndThreatHUD:FindChild("MiniBarList")
+		self.wndThreatHUD:Show(self.tOptions.bShowHUD)
+		self.wndMiniMeter = Apollo.LoadForm(self.xmlDoc, "MiniMeter", nil, self)
+		self.wndMiniMeter:Show(self.tOptions.bUseMiniMeter)
+		self.wndMiniThreatList = self.wndMiniMeter:FindChild("MiniBarList")
 		
 		-- GeminiColor Color Picker
 		--self.picker = GeminiColor:CreateColorPicker(self, "ColorPickerCallback", true)
@@ -328,7 +342,7 @@ end
 function ThreatWarning:WarnCheck(myThreat, topThreat)
 	local nPercent = 0
 	-- Set the %threat of the player in relation to the first person on the threatlist.
-	if myThreat / topThreat == 1 and #self.tThreatList > 1 then
+	if myThreat / topThreat == 1 and #self.tThreatList > 1 then	
 		nPercent = (self.tThreatList[2].nValue / myThreat) * 100 
 	else
 		nPercent = (myThreat / topThreat) * 100
@@ -349,7 +363,7 @@ function ThreatWarning:WarnCheck(myThreat, topThreat)
 			self.wndWarn:FindChild("Text"):SetText("***High Threat***")
 			self.wndWarn:SetTextColor(ApolloColor.new("red"))
 		end
-	
+		
 		-- Should we show the warning?
 		if myThreat >= ((self.tOptions.nWarningThreshold / 100) * topThreat) and self.tOptions.bShowWarning == true then
 			if self.wndWarn ~= nil and not self.wndWarn:IsShown() then
@@ -370,7 +384,7 @@ end
 function ThreatWarning:OnCombatTimer()
 	if os.time() >= (self.nLastCombatAction + 5) then
 		self.wndMain:FindChild("ThreatList"):DestroyChildren()
-		self.wndThreatHUD:FindChild("MiniBarList"):DestroyChildren()
+		self.wndMiniMeter:FindChild("MiniBarList"):DestroyChildren()
 		self.nCombatDuration = 0
 		self.wndWarn:Show(false)
 		self.wndThreatHUD:FindChild("Flash"):Show(false)
@@ -450,11 +464,13 @@ function ThreatWarning:CreateThreatBar(wndParent, tEntry)
 	local nLeft, nTop, _, nBottom = wnd:FindChild("Background"):GetAnchorPoints()
 	wnd:FindChild("Background"):SetAnchorPoints(nLeft, nTop, nPercent / 100, nBottom)
 	wnd:FindChild("Background"):SetBGColor(ApolloColor.new(sColor))
+	wnd:FindChild("Background"):SetSprite(self.tOptions.sBarTexture)
 	
 	-- Set the length and background for the MiniThreatBar
 	local nLeftMini, nTopMini, _, nBottomMini = wndMini:FindChild("Background"):GetAnchorPoints()
 	wndMini:FindChild("Background"):SetAnchorPoints(nLeftMini, nTopMini, nPercent / 100, nBottomMini)
 	wndMini:FindChild("Background"):SetBGColor(ApolloColor.new(sColor))
+	wndMini:FindChild("Background"):SetSprite(self.tOptions.sBarTexture)
 	
 
 end
@@ -564,8 +580,12 @@ function ThreatWarning:OnOptionsOn()
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Self"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sSelf)
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Others"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sOthers)
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Pet"):FindChild("BGColor"):SetBGColor(self.tOptions.tColors.sPet)
-	self.wndOptions:FindChild("ThreatHudOptions"):FindChild("ShowMiniMeter"):SetCheck(self.tOptions.bUseMiniMeter)
-
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("ShowMiniMeter"):SetCheck(self.tOptions.bUseMiniMeter)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("Popout"):Show(false)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("BarDemo"):SetBGColor(self.tOptions.tColors.sSelf)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("BarDemo"):SetSprite(self.tOptions.sBarTexture)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("MiniBarDemo"):SetBGColor(self.tOptions.tColors.sSelf)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("MiniBarDemo"):SetSprite(self.tOptions.sBarTexture)
 	
 	if self.wndOptions:IsShown() then self.wndOptions:Show(false) else self.wndOptions:Show(true) end
 end
@@ -629,8 +649,8 @@ end
 
 -- Process color choice
 function ThreatWarning:OnGeminiColor(strColor, strFocus)
-Print(strColor)
-Print(strFocus..": "..strColor)
+--Print(strColor)
+--Print(strFocus..": "..strColor)
 	if strFocus == "Self" then
 		self.tOptions.tColors.sSelf = strColor
 	elseif strFocus == "Others" then
@@ -722,7 +742,41 @@ end
 
 function ThreatWarning:OnMiniMeterShowBtn( wndHandler, wndControl, eMouseButton )
 	self.tOptions.bUseMiniMeter = wndControl:IsChecked()
-	self.wndMiniThreatList:Show(self.tOptions.bUseMiniMeter)
+	self.wndMiniMeter:Show(self.tOptions.bUseMiniMeter)
+end
+
+function ThreatWarning:OnChangeTextureBtn( wndHandler, wndControl, eMouseButton )
+	local wndPopout = self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("Popout")
+	local wndList = wndPopout:FindChild("TextureList")
+	wndList:DestroyChildren()
+	
+	if wndPopout:IsShown() then
+		wndPopout:Show(false)
+	else
+		wndPopout:Show(true)
+		for i = 1, #self.tTextures do
+			local wndTexture = Apollo.LoadForm(self.xmlDoc, "TextureButton", wndList, self)
+			wndTexture:FindChild("OthersTexture"):SetSprite(self.tTextures[i])
+			wndTexture:FindChild("OthersTexture"):SetBGColor(self.tOptions.tColors.sOthers)
+			wndTexture:FindChild("SelfTexture"):SetSprite(self.tTextures[i])
+			wndTexture:FindChild("SelfTexture"):SetBGColor(self.tOptions.tColors.sSelf)
+			wndTexture:SetData(self.tTextures[i])
+		end
+		
+		wndList:ArrangeChildrenVert()
+		
+	end
+end
+
+---------------------------------------------------------------------------------------------------
+-- TextureButton Functions
+---------------------------------------------------------------------------------------------------
+
+function ThreatWarning:OnTextureBtn( wndHandler, wndControl, eMouseButton )
+	self.tOptions.sBarTexture = wndHandler:GetData()
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("Popout"):Show(false)
+	self.wndOptions:Show(false)
+	self:OnOptionsOn()
 end
 
 -----------------------------------------------------------------------------------------------
