@@ -145,9 +145,7 @@ function ThreatWarning:OnDocLoaded()
 		self.wndThreatList = self.wndMain:FindChild("ThreatList")
 		self.wndOptions:Show(false, true)
 		self.wndThreatHUD = Apollo.LoadForm(self.xmlDoc, "ThreatHUD", nil, self)
-		self.wndThreatHUD:Show(self.tOptions.bShowHUD)
 		self.wndMiniMeter = Apollo.LoadForm(self.xmlDoc, "MiniMeter", nil, self)
-		self.wndMiniMeter:Show(self.tOptions.bUseMiniMeter)
 		self.wndMiniThreatList = self.wndMiniMeter:FindChild("MiniBarList")
 		
 		-- GeminiColor Color Picker
@@ -213,7 +211,7 @@ function ThreatWarning:OnDocLoaded()
 		self.wndThreatHUD:Show(self.tOptions.bShowHUD)
 		self.wndThreatHUD:FindChild("Percent"):SetText("")
 		self.wndThreatHUD:FindChild("TopThreat"):SetText("")
-
+		self.wndMiniMeter:Show(self.tOptions.bUseMiniMeter)
 	end
 end
 
