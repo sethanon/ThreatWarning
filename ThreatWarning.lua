@@ -39,6 +39,8 @@ ThreatWarning.tOptionsDefault = {
 	bShowHUD = false,
 	bUseMiniMeter = false,
 	sBarTexture = "ClientSprites:HoverHealthFull",
+	bShowWhenAlone = false,
+	nWarningSound = 221,
 	tAnchors = {
 		0,
 		0,
@@ -74,6 +76,18 @@ ThreatWarning.tOptionsDefault = {
 		0,
 		0,
 		0
+		},
+	tAnchorsWarning = {
+		-130,
+		-125,
+		130,
+		-75
+		},
+	tOffsetsWarning = {
+		0.5,
+		0.5,
+		0.5,
+		0.5
 		},
 	tColors = {
       sSelf = "ff8b0000",
@@ -253,7 +267,7 @@ function ThreatWarning:OnThreatWarningOn(cmd, args)
 	if args:lower() == "options" then
 		self:OnOptionsOn()
 	else
-		self:ShowHideMeter(not self.tOptions.bShow)
+		self:OnOptionsOn()-- self:ShowHideMeter(not self.tOptions.bShow)
 	end
 end
 
@@ -271,6 +285,9 @@ function ThreatWarning:OnSave(eLevel)
 	
 	self.tOptions.tAnchorsMini = {self.wndMiniMeter:GetAnchorPoints()}
 	self.tOptions.tOffsetsMini = {self.wndMiniMeter:GetAnchorOffsets()}
+	
+	self.tOptions.tAnchorsWarning = {self.wndWarn:GetAnchorPoints()}
+	self.tOptions.tOffsetsWarning = {self.wndWarn:GetAnchorOffsets()}
 	
 	local tData = self.tOptions
 	
@@ -408,6 +425,8 @@ function ThreatWarning:OnCombatTimer()
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("white"))
 		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new("white"))
 		self.wndThreatHUD:FindChild("Message"):SetText("")
+		self.wndWarn:SetStyle("Moveable", false)
+		self.wndWarn:SetStyle("IgnoreMouse", true)
 	else self.nCombatDuration = self.nCombatDuration + 1
 	end
 end
@@ -418,10 +437,9 @@ function ThreatWarning:OnUpdateTimer()
 		return
 	end
 
-	-- Future Option for showing the GUI
-	--if not self.tOptions.bShowSolo and #self.tThreatList < 2 then
-		--return
-	--end
+	-- Hide the Meter options
+	if not self.tOptions.bShowWhenAlone and #self.tThreatList < 2 then return end
+	
 	
 	local wndThreatBar = Apollo.LoadForm(self.xmlDoc, "ThreatBar", nil, self)
 	local nBars = math.floor(self.wndThreatList:GetHeight() / wndThreatBar:GetHeight())
@@ -601,6 +619,7 @@ function ThreatWarning:OnOptionsOn()
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("BarDemo"):SetSprite(self.tOptions.sBarTexture)
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("MiniBarDemo"):SetBGColor(self.tOptions.tColors.sSelf)
 	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("Texture"):FindChild("MiniBarDemo"):SetSprite(self.tOptions.sBarTexture)
+	self.wndOptions:FindChild("ThreatMeterOptions"):FindChild("ShowWhenAlone"):SetCheck(self.tOptions.bShowWhenAlone)
 	
 	if self.wndOptions:IsShown() then self.wndOptions:Show(false) else self.wndOptions:Show(true) end
 end
@@ -781,6 +800,19 @@ function ThreatWarning:OnChangeTextureBtn( wndHandler, wndControl, eMouseButton 
 		wndList:ArrangeChildrenVert()
 		
 	end
+end
+
+function ThreatWarning:OnShowMoveWarningBtn( wndHandler, wndControl, eMouseButton )
+	self.nLastCombatAction = os.time() + 8
+	self.wndWarn:FindChild("Text"):SetText("***High Threat***")
+	self.wndWarn:FindChild("Text"):SetTextColor(ApolloColor.new("red"))
+	self.wndWarn:SetStyle("Moveable", true)
+	self.wndWarn:SetStyle("IgnoreMouse", false)
+	self.wndWarn:Show(true)
+end
+
+function ThreatWarning:OnShowWhenAloneBtn( wndHandler, wndControl, eMouseButton )
+	self.tOptions.bShowWhenAlone = wndControl:IsChecked()
 end
 
 ---------------------------------------------------------------------------------------------------
