@@ -351,7 +351,7 @@ end
 function ThreatWarning:OnTargetUnitChanged(unitTarget)
 	self.wndMain:FindChild("ThreatList"):DestroyChildren()
 	self.wndWarn:Show(false)
-	self.wndThreatHUD:FindChild("MiniBarList"):DestroyChildren()
+	self.wndMiniMeter:FindChild("MiniBarList"):DestroyChildren()
 end
 
 -----------------------------------------------------------------------------------------------
@@ -373,14 +373,17 @@ end
 -- Added ThreatHUD push to this path
 function ThreatWarning:WarnCheck(myThreat, topThreat)
 	local nPercent = 0
+	local bTank = false
 	-- Set the %threat of the player in relation to the first person on the threatlist.
 	if myThreat / topThreat == 1 and #self.tThreatList > 1 then	
-		nPercent = (self.tThreatList[2].nValue / myThreat) * 100 
+		nPercent = (self.tThreatList[2].nValue / myThreat) * 100
+		bTank = true
 	else
 		nPercent = (myThreat / topThreat) * 100
+		bTank = false
 	end
 	
-	self:UpdateHUD(nPercent)
+	self:UpdateHUD(nPercent, bTank)
 	
 	if #self.tThreatList > 1 then -- Base Check to only change things when there is more than 1 person in the group
 
@@ -540,13 +543,13 @@ function ThreatWarning:ShowHUD(bShow)
 	end
 end
 
-function ThreatWarning:UpdateHUD(nPercent)
+function ThreatWarning:UpdateHUD(nPercent, bTank)
 	self.wndThreatHUD:FindChild("Message"):SetText("")
 	-- Set the ThreatHUD Percent Display
-	if nPercent > 0 then
-		self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%d%s", nPercent, "%"))
-	else 
+	if nPercent < -100 or nPercent > 110 then
 		self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%s%s", "Low", "%"))
+	else 
+		self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%d%s", nPercent, "%"))
 	end
 	
 	-- Set other HUD text and colors
@@ -554,8 +557,9 @@ function ThreatWarning:UpdateHUD(nPercent)
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("yellow"))
 		self.wndThreatHUD:FindChild("Flash"):Show(false)
 		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sOthers))
-		self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
-	elseif nPercent == 100 then
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("Tank: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
+	-- This is unlikely to be useful
+	elseif nPercent >= 100 then
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
 		self.wndThreatHUD:FindChild("TopThreat"):SetTextColor(ApolloColor.new(self.tOptions.tColors.sSelf))
 		if #self.tThreatList > 1 then
@@ -567,16 +571,23 @@ function ThreatWarning:UpdateHUD(nPercent)
 			self.wndThreatHUD:FindChild("TopThreat"):SetText("Second: "..GameLib.GetUnitById(self.tThreatList[2].nId):GetName())
 			self.wndThreatHUD:FindChild("Message"):SetText("TOP THREAT!!!")
 		else
-			self.wndThreatHUD:FindChild("TopThreat"):SetText("Aggro: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
+			self.wndThreatHUD:FindChild("TopThreat"):SetText("Tank: "..GameLib.GetUnitById(self.tThreatList[1].nId):GetName())
 		end
-		--self.wndThreatHUD:FindChild("Message"):SetTextColor(ApolloColor.new("ff8b0000"))
-
 	elseif nPercent >= 90 then
 		self.wndThreatHUD:FindChild("Percent"):SetTextColor(ApolloColor.new("red"))
 		self.wndThreatHUD:FindChild("Flash"):Show(false)
 	end
 	
+	-- Set second target if you are the tank and change the display to negatives when below your threat total
+	if bTank then
+		self.wndThreatHUD:FindChild("TopThreat"):SetText("Second: "..GameLib.GetUnitById(self.tThreatList[2].nId):GetName())
+		if nPercent > 100 then nPercent = nPercent else nPercent = nPercent - 100 end
+		self.wndThreatHUD:FindChild("Percent"):SetText(string.format("%d%s", nPercent, "%"))
+		--self.wndThreatHUD:FindChild("Message"):SetText("TOP THREAT!!!")
+	end
+	
 	-- Message Checks
+		--self.wndThreatHUD:FindChild("Message"):SetTextColor(ApolloColor.new("ff8b0000"))
 	
 	-- Show or hide the ThreatHUD based on a FUTURE HUD toggle setting
 	if nPercent >= self.tOptions.nWarningThreshold / 100 and self.tOptions.bShowHUD then
